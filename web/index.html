@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Проверка перед уроком</title>
+<style>
+  :root {
+    --bg: #FFF8F4; --card: #FFFDFB; --line: #F1E1D5; --ink: #262A3B; --muted: #5A5F70; --quiet: #8A8F9C;
+    --accent: #E2692A; --accent-ink: #FFFDFB; --accent-soft: #FDE3D2;
+    --ok: #2E8B57; --ok-soft: #E3F4EA; --warn: #B7791F; --warn-soft: #FBF0D9; --bad: #C53D3D; --bad-soft: #FBE4E4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181F; --card: #20222C; --line: #33364A; --ink: #F1F1F4; --muted: #B4B7C3; --quiet: #8A8E9E;
+      --accent: #F08A4B; --accent-ink: #1B1C24; --accent-soft: #3A2A22;
+      --ok: #5CC489; --ok-soft: #1F3329; --warn: #E6B652; --warn-soft: #3A3120; --bad: #F07A7A; --bad-soft: #3D2426;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 8px 0 8px; letter-spacing: -0.3px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 12px 0; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .row h2 { font-size: 18px; margin: 0; flex: 1; }
+  .num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px;
+         background: var(--accent-soft); color: var(--accent); flex: none; }
+  .chip { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: var(--line); color: var(--muted); }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); }
+  .chip.run { background: var(--accent-soft); color: var(--accent); }
+  .body { margin-top: 12px; color: var(--muted); }
+  .body:empty { display: none; }
+  .msg { margin: 8px 0 0; }
+  video { width: 100%; max-height: 320px; background: #000; border-radius: 12px; display: block; object-fit: cover; }
+  .meter { height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 0; }
+  .meter > i { display: block; height: 100%; width: 0%; background: var(--ok); transition: width .08s linear; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 12px; padding: 12px 18px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); }
+  button.secondary { background: var(--accent-soft); color: var(--ink); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  select { font: inherit; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); max-width: 100%; }
+  label.dev { display: block; font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .howto { margin-top: 10px; padding: 12px; background: var(--bg); border-radius: 12px; color: var(--ink); }
+  .howto b { display: block; margin-bottom: 4px; }
+  .howto ol { margin: 4px 0 0; padding-left: 20px; }
+  #summary h2 { font-size: 20px; margin: 0 0 8px; }
+  pre#report { white-space: pre-wrap; word-break: break-word; background: var(--bg); border-radius: 12px; padding: 12px; font: 14px/1.45 ui-monospace, Menlo, Consolas, monospace; margin: 12px 0 0; }
+  .foot { color: var(--quiet); font-size: 14px; margin-top: 24px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Проверка перед уроком</h1>
+  <p class="lead">Проверим камеру, микрофон, звук и интернет — примерно за минуту. Если что-то не так, покажем, как это исправить.</p>
+
+  <div class="card" id="start-card">
+    <p class="msg" style="margin-top:0">Когда браузер спросит разрешение на камеру и микрофон — нажмите <b>«Разрешить»</b>.</p>
+    <div class="buttons"><button class="primary" id="start">Начать проверку</button></div>
+  </div>
+
+  <section id="steps" class="hidden">
+    <div class="card" id="step-env"><div class="row"><span class="num">1</span><h2>Браузер</h2><span class="chip" id="chip-env">ждёт</span></div><div class="body" id="body-env"></div></div>
+    <div class="card" id="step-cam"><div class="row"><span class="num">2</span><h2>Камера</h2><span class="chip" id="chip-cam">ждёт</span></div><div class="body" id="body-cam"></div></div>
+    <div class="card" id="step-mic"><div class="row"><span class="num">3</span><h2>Микрофон</h2><span class="chip" id="chip-mic">ждёт</span></div><div class="body" id="body-mic"></div></div>
+    <div class="card" id="step-spk"><div class="row"><span class="num">4</span><h2>Звук</h2><span class="chip" id="chip-spk">ждёт</span></div><div class="body" id="body-spk"></div></div>
+    <div class="card" id="step-net"><div class="row"><span class="num">5</span><h2>Интернет</h2><span class="chip" id="chip-net">ждёт</span></div><div class="body" id="body-net"></div></div>
+  </section>
+
+  <section class="card hidden" id="summary" aria-live="polite">
+    <h2 id="verdict"></h2>
+    <p class="msg" id="verdict-text"></p>
+    <pre id="report"></pre>
+    <div class="buttons">
+      <button class="primary" id="copy">Скопировать для поддержки</button>
+      <button class="secondary" id="again">Проверить ещё раз</button>
+    </div>
+    <p class="msg" id="copy-note"></p>
+  </section>
+
+  <p class="foot">Видео и звук никуда не отправляются — проверка идёт только на вашем устройстве.</p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // ---------- настройки
+  var params = new URLSearchParams(location.search);
+  var CONFIG = {
+    // Замер скорости: сначала файлы рядом со страницей (ping.txt и speed-5mb.bin), если их нет — Cloudflare.
+    // Можно указать свои адреса: ?speedUrl=…&pingUrl=…
+    net: params.get('speedUrl') ? [{ ping: params.get('pingUrl') || params.get('speedUrl'), speed: params.get('speedUrl') }]
+      : [{ ping: 'ping.txt', speed: 'speed-5mb.bin' },
+         { ping: 'https://speed.cloudflare.com/__down?bytes=0', speed: 'https://speed.cloudflare.com/__down?bytes=5000000' }],
+    pingTimeoutMs: 3000,
+    // Проверка видеосвязи: получает ли браузер внешний адрес от STUN-сервера по UDP (так соединяются видеоуроки)
+    stun: params.get('stun') ? [params.get('stun')] : ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'],
+    udpTimeoutMs: 5000,
+    minFps: 12,              // меньше кадров в секунду — видео будет дёргаться
+    minVersion: { chrome: 110, edge: 110, yandex: 23, opera: 95, firefox: 115, safari: 15 },
+    listenMs: 5000,          // сколько слушаем микрофон
+    silentLevel: 0.015,      // ниже этого уровня считаем, что микрофон «не слышит»
+    darkLevel: 18,           // средняя яркость кадра 0–255, ниже — «картинка тёмная»
+    goodMbps: 5, okMbps: 2, highLatencyMs: 200
+  };
+
+  // ---------- устройство и браузер
+  function detect() {
+    var ua = navigator.userAgent || '';
+    var os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios'
+      : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Mac OS X/.test(ua) ? 'mac' : /CrOS/.test(ua) ? 'chromeos' : /Linux/.test(ua) ? 'linux' : 'other';
+    var m, browser = 'other', version = '';
+    if ((m = ua.match(/YaBrowser\/([\d.]+)/))) { browser = 'yandex'; version = m[1]; }
+    else if ((m = ua.match(/Edg\/([\d.]+)/))) { browser = 'edge'; version = m[1]; }
+    else if ((m = ua.match(/OPR\/([\d.]+)/))) { browser = 'opera'; version = m[1]; }
+    else if ((m = ua.match(/(?:Firefox|FxiOS)\/([\d.]+)/))) { browser = 'firefox'; version = m[1]; }
+    else if ((m = ua.match(/(?:Chrome|CriOS)\/([\d.]+)/))) { browser = 'chrome'; version = m[1]; }
+    else if ((m = ua.match(/Version\/([\d.]+).*Safari/))) { browser = 'safari'; version = m[1]; }
+    var inApp = /Telegram|Instagram|FBAN|FBAV|WhatsApp|VKClient|; wv\)|Line\//.test(ua);
+    var names = { chrome: 'Chrome', edge: 'Edge', yandex: 'Яндекс Браузер', opera: 'Opera', firefox: 'Firefox', safari: 'Safari', other: 'браузер' };
+    var osNames = { ios: 'iPhone/iPad', android: 'Android', windows: 'Windows', mac: 'macOS', chromeos: 'ChromeOS', linux: 'Linux', other: '' };
+    var major = parseInt(version.split('.')[0], 10);
+    var min = CONFIG.minVersion[browser];
+    var old = !isNaN(major) && !!min && major < min;
+    return { os: os, browser: browser, version: version.split('.')[0], inApp: inApp, old: old,
+      label: (names[browser] + (version ? ' ' + version.split('.')[0] : '')) + (osNames[os] ? ', ' + osNames[os] : '') };
+  }
+  var env = detect();
+
+  // ---------- инструкции
+  function siteSettings(kind) {
+    var what = kind === 'cam' ? 'Камера' : 'Микрофон';
+    if (env.os === 'ios' && env.browser !== 'safari') {
+      var app = env.browser === 'chrome' ? 'Chrome' : env.browser === 'firefox' ? 'Firefox' : env.browser === 'yandex' ? 'Яндекс' : 'ваш браузер';
+      return ['Откройте Настройки iPhone → ' + app, 'Включите «' + what + '»', 'Вернитесь в браузер и обновите страницу'];
+    }
+    if (env.os === 'ios') return ['Нажмите «аА» слева в адресной строке → «Настройки веб-сайта»', what + ' → «Разрешить»', 'Обновите страницу. Если не помогло: Настройки iPhone → Safari → ' + what + ' → «Спрашивать»'];
+    if (env.os === 'android') return ['Нажмите на значок слева от адреса сайта → «Разрешения»', what + ' → «Разрешить»', 'Если не помогло: Настройки телефона → Приложения → ваш браузер → Разрешения → ' + what];
+    if (env.browser === 'safari') return ['Меню Safari → «Настройки» → «Веб-сайты» → ' + what, 'Для этого сайта выберите «Разрешить»', 'Обновите страницу'];
+    if (env.browser === 'firefox') return ['Нажмите на значок камеры или замка слева от адреса', 'Уберите блокировку для «' + what + '»', 'Обновите страницу'];
+    return ['Нажмите на значок слева от адреса сайта (замок или ползунки)', what + ' → «Разрешить»', 'Обновите страницу'];
+  }
+  function systemSettings(kind) {
+    var what = kind === 'cam' ? 'Камера' : 'Микрофон';
+    var dat = kind === 'cam' ? 'камере' : 'микрофону';
+    if (env.os === 'windows') return ['Пуск → Параметры → «Конфиденциальность и защита» (в Windows 10 — «Конфиденциальность») → ' + what,
+      'Включите доступ к ' + dat + ' (в Windows 10 — кнопка «Изменить» сверху), доступ для приложений и «Разрешить классическим приложениям доступ к ' + dat + '»', 'Перезапустите браузер'];
+    if (env.os === 'mac') return ['Системные настройки → «Конфиденциальность и безопасность» (в старых macOS — «Защита и безопасность» → «Конфиденциальность») → ' + what, 'Включите переключатель у вашего браузера', 'Полностью закройте браузер (⌘Q) и откройте снова'];
+    return null;
+  }
+  var HOWTO = {
+    insecure: { t: 'Страница открыта не по защищённой ссылке', s: ['Браузер не даёт камеру и микрофон таким страницам', 'Откройте ссылку, которая начинается с https://'] },
+    inapp: { t: 'Ссылка открыта внутри приложения', s: ['В Telegram, WhatsApp, Instagram камера часто не работает', 'Нажмите «⋯» или «Поделиться» → «Открыть в браузере» (Chrome или Safari)'] },
+    unsupported: { t: 'Браузер не поддерживает видеосвязь', s: ['Установите или обновите Google Chrome', 'Откройте эту страницу в нём'] },
+    camBusy: { t: 'Камеру держит другая программа', s: ['Закройте Zoom, Skype, Teams, Discord и другие вкладки с видео', 'Перезапустите браузер и пройдите проверку ещё раз', 'Не помогло — перезагрузите компьютер'] },
+    camMissing: { t: 'Браузер не видит камеру', s: ['Проверьте, подключена ли камера (шнур, USB-порт)', 'На ноутбуке: шторка над камерой или клавиша со значком камеры (F6, F8, F10, иногда вместе с Fn)', 'Выберите другую камеру в списке, если она есть'] },
+    camSlow: { t: 'Камера выдаёт мало кадров — видео будет дёргаться', s: ['Включите свет: в темноте камера сама снижает частоту кадров', 'Закройте лишние программы и вкладки', 'Подключите камеру прямо к компьютеру, а не через USB-разветвитель'] },
+    oldBrowser: { t: 'Браузер устарел', s: env.os === 'ios' ? ['Обновите iPhone: Настройки → Основные → Обновление ПО', 'Если обновить нельзя — занимайтесь с другого устройства']
+      : ['Обновите браузер: меню → Справка → О браузере — он обновится сам', 'Если обновить нельзя (старое устройство или Windows 7) — откройте страницу в другом браузере или на другом устройстве'] },
+    netUdp: { t: 'Сеть может не пропускать видеосвязь', s: ['Выключите VPN и прокси, если они есть, и расширения «защита от утечки WebRTC» (их тоже видно как блокировку)', 'Если вы в школе, на работе или в общественном Wi-Fi — такие сети часто блокируют видеосвязь: попробуйте домашний Wi-Fi или мобильный интернет', 'Если стоит антивирус с сетевым экраном — разрешите браузеру доступ в сеть'] },
+    camDark: { t: 'Картинка с камеры тёмная', s: ['Проверьте, не закрыта ли камера шторкой или наклейкой', 'Включите свет в комнате'] },
+    micSilent: { t: 'Микрофон ничего не слышит', s: ['Проверьте кнопку выключения микрофона на наушниках или клавиатуре', 'Выберите другой микрофон в списке и нажмите «Проверить ещё раз»', 'Поднесите микрофон ближе и говорите громче'] },
+    micMissing: { t: 'Браузер не видит микрофон', s: ['Подключите наушники с микрофоном или проверьте их разъём', 'Выберите другой микрофон в списке, если он есть'] },
+    micBusy: { t: 'Микрофон занят другой программой', s: ['Закройте Zoom, Skype, Teams, Discord', 'Перезапустите браузер'] },
+    spkNo: { t: 'Звука не слышно', s: env.os === 'ios' || env.os === 'android'
+      ? ['Прибавьте громкость боковыми кнопками', 'Выключите беззвучный режим', 'Если подключены наушники по Bluetooth — проверьте, что звук идёт в них']
+      : ['Проверьте громкость (значок динамика внизу экрана)', 'Проверьте, что выбраны нужные наушники или колонки', 'Если наушники подключены — проверьте, что они включены и заряжены'] },
+    netOffline: { t: 'Нет интернета', s: ['Проверьте Wi-Fi или кабель', 'Перезагрузите роутер: выключите на 30 секунд и включите'] },
+    netSlow: { t: 'Медленный интернет', s: ['Подойдите ближе к Wi-Fi роутеру или подключите кабель', 'Закройте загрузки, игры и видео на других устройствах дома', 'Перезагрузите роутер'] },
+    netUnknown: { t: 'Скорость не удалось измерить', s: ['Это не всегда проблема: возможно, сеть блокирует проверку', 'Если на уроке тормозит видео — подойдите ближе к роутеру'] }
+  };
+
+  // ---------- состояние
+  var R = {};            // результаты: {env, cam, mic, spk, net} → {level: ok|warn|bad, text, howto: [ключи]}
+  var streams = [];
+  var audioCtx = null;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) { if (k === 'class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); }
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function chip(step, level, text) {
+    var c = $('chip-' + step);
+    c.className = 'chip' + (level ? ' ' + level : '');
+    c.textContent = text;
+  }
+  function body(step) { return $('body-' + step); }
+  function say(step, text) { var p = el('p', { class: 'msg' }, text); body(step).appendChild(p); return p; }
+  function howtoBlock(key, steps) {
+    var h = HOWTO[key] || { t: key, s: [] };
+    var box = el('div', { class: 'howto', 'data-howto': key });
+    box.appendChild(el('b', null, h.t));
+    var ol = el('ol');
+    (steps || h.s).forEach(function (s) { ol.appendChild(el('li', null, s)); });
+    box.appendChild(ol);
+    return box;
+  }
+  function permHowto(kind, bySystem) {
+    var wrap = document.createDocumentFragment();
+    var sys = systemSettings(kind);
+    var title = kind === 'cam' ? 'Нет доступа к камере' : 'Нет доступа к микрофону';
+    if (bySystem && sys) {
+      var b1 = howtoBlock('perm-system', sys); b1.firstChild.textContent = title + ' — запрещено в настройках системы'; wrap.appendChild(b1);
+    } else {
+      var b2 = howtoBlock('perm-site', siteSettings(kind)); b2.firstChild.textContent = title + ' — разрешите в браузере'; wrap.appendChild(b2);
+      if (sys) { var b3 = howtoBlock('perm-system', sys); b3.firstChild.textContent = 'Если разрешено, но всё равно не работает — проверьте настройки системы'; wrap.appendChild(b3); }
+    }
+    return wrap;
+  }
+  var releaseTimer = null;
+  function releaseCameraSoon() {
+    // После проверки выключаем камеру, иначе урок в другой вкладке/программе увидит её «занятой».
+    clearTimeout(releaseTimer);
+    releaseTimer = setTimeout(function () {
+      if (!streams.length) return;
+      stopStreams();
+      var v = document.querySelector('#body-cam video');
+      if (v) { v.srcObject = null; v.remove(); say('cam', 'Камеру выключили, чтобы она не мешала уроку.'); }
+    }, 3000);
+  }
+  function stopStreams() { streams.forEach(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); }); streams = []; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function classify(err) {
+    var n = (err && err.name) || '';
+    var msg = (err && err.message) || '';
+    if (n === 'NotAllowedError' || n === 'SecurityError' || n === 'PermissionDeniedError') return /system/i.test(msg) ? 'denied-system' : 'denied';
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') return 'missing';
+    if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') return 'busy';
+    return 'other';
+  }
+
+  async function listDevices(kind) {
+    try { return (await navigator.mediaDevices.enumerateDevices()).filter(function (d) { return d.kind === kind; }); }
+    catch (e) { return []; }
+  }
+  function deviceSelect(step, kind, current, onPick) {
+    return listDevices(kind).then(function (devs) {
+      if (devs.length < 2) return;
+      var lab = el('label', { class: 'dev' }, kind === 'videoinput' ? 'Другая камера:' : 'Другой микрофон:');
+      var sel = el('select', { 'aria-label': lab.textContent });
+      devs.forEach(function (d, i) {
+        var o = el('option', { value: d.deviceId }, d.label || ((kind === 'videoinput' ? 'Камера ' : 'Микрофон ') + (i + 1)));
+        if (d.deviceId === current) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', function () { onPick(sel.value); });
+      lab.appendChild(document.createElement('br')); lab.appendChild(sel);
+      body(step).appendChild(lab);
+    });
+  }
+
+  // ---------- 1. браузер
+  function checkEnv() {
+    chip('env', 'run', 'проверяю');
+    var b = body('env'); b.textContent = '';
+    say('env', env.label);
+    var problems = [];
+    if (!window.isSecureContext) problems.push('insecure');
+    else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) problems.push('unsupported');
+    if (env.inApp) problems.push('inapp');
+    if (env.old) problems.push('oldBrowser');
+    problems.forEach(function (k) { b.appendChild(howtoBlock(k)); });
+    var level = problems.indexOf('insecure') >= 0 || problems.indexOf('unsupported') >= 0 ? 'bad' : problems.length ? 'warn' : 'ok';
+    R.env = { level: level, text: env.label + (problems.length ? ' — ' + problems.map(function (k) { return HOWTO[k].t.toLowerCase(); }).join('; ') : ''), howto: problems };
+    chip('env', level, level === 'ok' ? 'всё хорошо' : level === 'warn' ? 'есть замечание' : 'проблема');
+    return level !== 'bad';
+  }
+
+  // ---------- 2. камера
+  async function checkCam(deviceId) {
+    chip('cam', 'run', 'проверяю');
+    var b = body('cam'); b.textContent = '';
+    clearTimeout(releaseTimer);
+    stopStreams();
+    var stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? { deviceId: { exact: deviceId } } : true, audio: false });
+    } catch (err) {
+      var kind = classify(err);
+      if (kind === 'denied' || kind === 'denied-system') {
+        R.cam = { level: 'bad', text: 'нет разрешения' + (kind === 'denied-system' ? ' (запрещено в системе)' : ''), howto: ['perm'] };
+        b.appendChild(permHowto('cam', kind === 'denied-system'));
+      } else if (kind === 'missing') {
+        R.cam = { level: 'bad', text: 'не найдена', howto: ['camMissing'] }; b.appendChild(howtoBlock('camMissing'));
+      } else if (kind === 'busy') {
+        R.cam = { level: 'bad', text: 'занята другой программой или не запускается', howto: ['camBusy'] }; b.appendChild(howtoBlock('camBusy'));
+      } else {
+        R.cam = { level: 'bad', text: 'ошибка: ' + ((err && err.name) || 'неизвестная'), howto: ['camBusy'] }; b.appendChild(howtoBlock('camBusy'));
+      }
+      chip('cam', 'bad', 'проблема');
+      retryButton('cam', function () { return checkCam(); });
+      return;
+    }
+    streams.push(stream);
+    var track = stream.getVideoTracks()[0];
+    var video = el('video', { autoplay: '', playsinline: '', muted: '' });
+    video.muted = true; video.srcObject = stream;
+    b.appendChild(video);
+    try { await video.play(); } catch (e) { }
+    // Кадры в секунду: считаем от первого показанного кадра (разогрев камеры не в счёт), по счётчику самого браузера
+    var first = null, last = null, counting = !!video.requestVideoFrameCallback;
+    if (counting) {
+      var onFrame = function (now, md) {
+        if (!counting) return;
+        var n = md && typeof md.presentedFrames === 'number' ? md.presentedFrames : (last ? last.n + 1 : 1);
+        if (!first) first = { t: now, n: n };
+        last = { t: now, n: n };
+        video.requestVideoFrameCallback(onFrame);
+      };
+      video.requestVideoFrameCallback(onFrame);
+    }
+    var bright = await measureBrightness(video, 2500);   // веб-камере нужно время на подстройку экспозиции
+    counting = false;
+    var fps = null;    // неизвестно (вкладка скрыта, браузер не умеет) — не ругаемся
+    if (!document.hidden && first && last && last.t - first.t >= 1000) fps = Math.round((last.n - first.n) / ((last.t - first.t) / 1000));
+    var st = track.getSettings ? track.getSettings() : {};
+    var size = st.width && st.height ? st.width + '×' + st.height : '';
+    var name = track.label || 'камера';
+    if (fps !== null) size += (size ? ', ' : '') + fps + ' к/с';
+    if (bright !== null && bright < CONFIG.darkLevel) {
+      R.cam = { level: 'warn', text: name + (size ? ', ' + size : '') + ' — картинка тёмная', howto: ['camDark'] };
+      b.appendChild(howtoBlock('camDark'));
+      chip('cam', 'warn', 'тёмная картинка');
+    } else if (fps !== null && fps < CONFIG.minFps) {
+      R.cam = { level: 'warn', text: name + ', ' + size + ' — мало кадров', howto: ['camSlow'] };
+      b.appendChild(howtoBlock('camSlow'));
+      chip('cam', 'warn', 'мало кадров');
+    } else {
+      R.cam = { level: 'ok', text: name + (size ? ', ' + size : ''), howto: [] };
+      say('cam', 'Видите себя? Значит, камера работает.');
+      chip('cam', 'ok', 'работает');
+    }
+    await deviceSelect('cam', 'videoinput', st.deviceId, function (id) { checkCam(id).then(refreshSummary); });
+  }
+  function measureBrightness(video, ms) {
+    return new Promise(function (resolve) {
+      var canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 24;
+      var ctx = canvas.getContext('2d', { willReadFrequently: true });
+      var best = null, start = performance.now();
+      (function tick() {
+        if (video.readyState >= 2) {
+          try {
+            ctx.drawImage(video, 0, 0, 32, 24);
+            var d = ctx.getImageData(0, 0, 32, 24).data, sum = 0;
+            for (var i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            var avg = sum / (d.length / 4);
+            best = best === null ? avg : Math.max(best, avg);
+          } catch (e) { }
+        }
+        if (performance.now() - start >= ms) resolve(best); else setTimeout(tick, 100);
+      })();
+    });
+  }
+
+  // ---------- 3. микрофон
+  async function checkMic(deviceId) {
+    chip('mic', 'run', 'слушаю');
+    var b = body('mic'); b.textContent = '';
+    var stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: deviceId ? { deviceId: { exact: deviceId } } : true, video: false });
+    } catch (err) {
+      var kind = classify(err);
+      if (kind === 'denied' || kind === 'denied-system') {
+        R.mic = { level: 'bad', text: 'нет разрешения' + (kind === 'denied-system' ? ' (запрещено в системе)' : ''), howto: ['perm'] };
+        b.appendChild(permHowto('mic', kind === 'denied-system'));
+      } else if (kind === 'missing') {
+        R.mic = { level: 'bad', text: 'не найден', howto: ['micMissing'] }; b.appendChild(howtoBlock('micMissing'));
+      } else {
+        R.mic = { level: 'bad', text: 'занят другой программой или не запускается', howto: ['micBusy'] }; b.appendChild(howtoBlock('micBusy'));
+      }
+      chip('mic', 'bad', 'проблема');
+      retryButton('mic', function () { return checkMic(); });
+      return;
+    }
+    streams.push(stream);
+    var track = stream.getAudioTracks()[0];
+    say('mic', 'Скажите вслух: «Раз, два, три, проверка»');
+    var meter = el('div', { class: 'meter', role: 'meter', 'aria-label': 'Громкость микрофона' }); var bar = el('i'); meter.appendChild(bar); b.appendChild(meter);
+    var peak = await listen(stream, CONFIG.listenMs, function (lvl) { bar.style.width = Math.min(100, Math.round(lvl * 400)) + '%'; });
+    track.stop();
+    var name = track.label || 'микрофон';
+    if (peak < CONFIG.silentLevel) {
+      R.mic = { level: 'warn', text: name + ' — не слышно голоса', howto: ['micSilent'] };
+      b.appendChild(howtoBlock('micSilent'));
+      chip('mic', 'warn', 'тихо');
+    } else {
+      R.mic = { level: 'ok', text: name, howto: [] };
+      say('mic', 'Слышу вас — микрофон работает.');
+      chip('mic', 'ok', 'работает');
+    }
+    var st = track.getSettings ? track.getSettings() : {};
+    await deviceSelect('mic', 'audioinput', st.deviceId, function (id) { checkMic(id).then(refreshSummary); });
+    retryButton('mic', function () { return checkMic(deviceId); }, 'Проверить ещё раз');
+  }
+  function getAudioCtx() {
+    if (!audioCtx) { var AC = window.AudioContext || window.webkitAudioContext; audioCtx = new AC(); }
+    if (audioCtx.state !== 'running' && audioCtx.resume) audioCtx.resume().catch(function () { });   // Safari: бывает «interrupted»
+    return audioCtx;
+  }
+  function listen(stream, ms, onLevel) {
+    return new Promise(function (resolve) {
+      var ctx = getAudioCtx();
+      var src = ctx.createMediaStreamSource(stream);
+      var an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
+      var mute = ctx.createGain(); mute.gain.value = 0; an.connect(mute); mute.connect(ctx.destination);   // Safari без выхода отдаёт тишину
+      var buf = new Float32Array(an.fftSize), peak = 0, start = performance.now();
+      (function tick() {
+        an.getFloatTimeDomainData(buf);
+        var s = 0; for (var i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+        var rms = Math.sqrt(s / buf.length);
+        peak = Math.max(peak, rms); onLevel(rms);
+        if (performance.now() - start >= ms) { try { src.disconnect(); mute.disconnect(); } catch (e) { } resolve(peak); }
+        else setTimeout(tick, 60);
+      })();
+    });
+  }
+
+  // ---------- 4. звук (ответ человека)
+  function checkSpk() {
+    chip('spk', 'run', 'ваш ответ');
+    var b = body('spk'); b.textContent = '';
+    say('spk', 'Нажмите «Проиграть звук» и скажите, слышно ли его.');
+    return new Promise(function (resolve) {
+      var row = el('div', { class: 'buttons' });
+      var play = el('button', { class: 'primary', id: 'spk-play' }, 'Проиграть звук');
+      var yes = el('button', { class: 'secondary', id: 'spk-yes' }, 'Слышно');
+      var no = el('button', { class: 'secondary', id: 'spk-no' }, 'Не слышно');
+      yes.disabled = true; no.disabled = true;
+      play.addEventListener('click', function () { beep(); yes.disabled = false; no.disabled = false; });
+      yes.addEventListener('click', function () { done(true); });
+      no.addEventListener('click', function () { done(false); });
+      row.appendChild(play); row.appendChild(yes); row.appendChild(no); b.appendChild(row);
+      function done(heard) {
+        row.remove();
+        if (heard) { R.spk = { level: 'ok', text: 'слышно', howto: [] }; say('spk', 'Отлично, звук работает.'); chip('spk', 'ok', 'работает'); }
+        else { R.spk = { level: 'bad', text: 'не слышно', howto: ['spkNo'] }; b.appendChild(howtoBlock('spkNo')); chip('spk', 'bad', 'проблема'); retryButton('spk', checkSpk); }
+        resolve();
+      }
+    });
+  }
+  function beep() {
+    try {
+      var ctx = getAudioCtx(), t = ctx.currentTime;
+      [0, 0.45].forEach(function (off, i) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = i ? 660 : 880; o.type = 'sine';
+        g.gain.setValueAtTime(0.0001, t + off); g.gain.exponentialRampToValueAtTime(0.4, t + off + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.35);
+        o.connect(g); g.connect(ctx.destination); o.start(t + off); o.stop(t + off + 0.4);
+      });
+    } catch (e) { }
+  }
+
+  // ---------- 5. интернет
+  async function checkNet() {
+    chip('net', 'run', 'замеряю');
+    var b = body('net'); b.textContent = '';
+    var info = say('net', 'Замеряю скорость, это до 15 секунд…');
+    if (navigator.onLine === false) { info.remove(); return netResult(null, null, true); }
+    var udpCheck = checkUdp();       // идёт параллельно с замером скорости
+    var lat = null, mbps = null;
+    for (var i = 0; i < CONFIG.net.length && lat === null; i++) {
+      lat = await latency(CONFIG.net[i].ping, 4);
+      if (lat !== null) mbps = await download(CONFIG.net[i].speed, 15000);
+    }
+    var udp = await udpCheck;
+    info.remove();
+    netResult(mbps, lat, false);
+    applyUdp(udp);
+  }
+  function checkUdp() {
+    return new Promise(function (resolve) {
+      if (!window.RTCPeerConnection) { resolve(null); return; }
+      var pc = null, done = false;
+      var timer = setTimeout(function () { finish(false); }, CONFIG.udpTimeoutMs);
+      function finish(v) { if (done) return; done = true; clearTimeout(timer); try { if (pc) pc.close(); } catch (e) { } resolve(v); }
+      try {
+        pc = new RTCPeerConnection({ iceServers: CONFIG.stun.map(function (u) { return { urls: u }; }) });
+        pc.createDataChannel('check');
+        pc.onicecandidate = function (e) {
+          if (!e.candidate) { finish(false); return; }            // сбор закончен, внешнего адреса нет
+          if (e.candidate.type === 'srflx' || / typ srflx /.test(e.candidate.candidate || '')) finish(true);
+        };
+        pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).catch(function () { finish(null); });
+      } catch (e) { finish(null); }
+    });
+  }
+  function applyUdp(udp) {
+    if (udp === null || !R.net || R.net.text === 'нет подключения') return;
+    if (udp) { R.net.text += '; видеосвязь: проходит'; say('net', 'Видеосвязь через вашу сеть проходит.'); return; }
+    R.net.text += '; видеосвязь (UDP): не проходит';
+    R.net.howto.push('netUdp');
+    body('net').appendChild(howtoBlock('netUdp'));
+    if (R.net.level === 'ok') { R.net.level = 'warn'; chip('net', 'warn', 'проверьте сеть'); }
+  }
+  function netResult(mbps, lat, offline) {
+    var b = body('net');
+    if (offline) { R.net = { level: 'bad', text: 'нет подключения', howto: ['netOffline'] }; b.appendChild(howtoBlock('netOffline')); chip('net', 'bad', 'нет сети'); return; }
+    if (mbps === null) {
+      var dl = navigator.connection && navigator.connection.downlink;
+      R.net = { level: 'warn', text: 'скорость не измерена' + (dl ? ' (по оценке браузера ~' + dl + ' Мбит/с)' : ''), howto: ['netUnknown'] };
+      b.appendChild(howtoBlock('netUnknown')); chip('net', 'warn', 'не измерено'); return;
+    }
+    var text = mbps.toFixed(1).replace('.', ',') + ' Мбит/с' + (lat !== null ? ', задержка ' + lat + ' мс' : '');
+    say('net', 'Скорость: ' + text);
+    if (mbps < CONFIG.okMbps) { R.net = { level: 'bad', text: text + ' — мало для видео', howto: ['netSlow'] }; b.appendChild(howtoBlock('netSlow')); chip('net', 'bad', 'медленно'); }
+    else if (mbps < CONFIG.goodMbps || (lat !== null && lat > CONFIG.highLatencyMs)) { R.net = { level: 'warn', text: text + ' — видео может подтормаживать', howto: ['netSlow'] }; b.appendChild(howtoBlock('netSlow')); chip('net', 'warn', 'средне'); }
+    else { R.net = { level: 'ok', text: text, howto: [] }; say('net', 'Скорости хватит для видеоурока.'); chip('net', 'ok', 'хорошо'); }
+  }
+  function bust(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now() + Math.random().toString(36).slice(2); }
+  async function latency(url, n) {
+    var times = [];
+    for (var i = 0; i < n; i++) {
+      var ctrl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, CONFIG.pingTimeoutMs);
+      var t0 = performance.now();
+      try {
+        var r = await fetch(bust(url), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined });
+        if (!r.ok) throw new Error('http ' + r.status);
+        await r.arrayBuffer(); times.push(performance.now() - t0);
+      } catch (e) { clearTimeout(timer); return null; }
+      clearTimeout(timer);
+    }
+    times.sort(function (a, b) { return a - b; });
+    return Math.round(times[Math.floor(times.length / 2)]);
+  }
+  async function download(url, maxMs) {
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, maxMs);
+    var t0 = performance.now(), bytes = 0;
+    try {
+      var r = await fetch(bust(url), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined });
+      if (!r.ok) throw new Error('http ' + r.status);
+      if (r.body && r.body.getReader) {
+        var reader = r.body.getReader();
+        while (true) { var c = await reader.read(); if (c.done) break; bytes += c.value.length; }
+      } else { bytes = (await r.arrayBuffer()).byteLength; }
+    } catch (e) { if (bytes === 0) { clearTimeout(timer); return null; } }
+    clearTimeout(timer);
+    var sec = (performance.now() - t0) / 1000;
+    if (bytes < 100000 || sec <= 0) return null;
+    return bytes * 8 / sec / 1e6;
+  }
+
+  // ---------- кнопки повтора и итог
+  function retryButton(step, fn, label) {
+    var row = el('div', { class: 'buttons' });
+    var btn = el('button', { class: 'secondary', 'data-retry': step }, label || 'Проверить ещё раз');
+    btn.addEventListener('click', function () { btn.disabled = true; Promise.resolve(fn()).then(refreshSummary); });
+    row.appendChild(btn); body(step).appendChild(row);
+  }
+  var LABELS = { env: 'Браузер', cam: 'Камера', mic: 'Микрофон', spk: 'Звук', net: 'Интернет' };
+  var MARK = { ok: 'OK', warn: '!', bad: 'X' };
+  function reportText() {
+    var d = new Date();
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var lines = ['Проверка перед уроком — ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())];
+    ['env', 'cam', 'mic', 'spk', 'net'].forEach(function (k) {
+      if (R[k]) lines.push('[' + MARK[R[k].level] + '] ' + LABELS[k] + ': ' + R[k].text);
+    });
+    lines.push(reportTag());
+    return lines.join('\n');
+  }
+  // Служебная строка для бота поддержки: коды проблем для статистики (web.<шаг>.<подсказка>)
+  function reportTag() {
+    var codes = [];
+    ['env', 'cam', 'mic', 'spk', 'net'].forEach(function (k) {
+      var r = R[k]; if (!r || r.level === 'ok') return;
+      var keys = r.howto && r.howto.length ? r.howto : [r.level];
+      keys.forEach(function (h) { var c = 'web.' + k + '.' + h; if (codes.indexOf(c) < 0) codes.push(c); });
+    });
+    return '#lesson-check-web 1 problems=' + (codes.length ? codes.join(',') : '-');
+  }
+  function refreshSummary() {
+    var keys = ['env', 'cam', 'mic', 'spk', 'net'].filter(function (k) { return R[k]; });
+    if (!keys.length || $('summary').classList.contains('hidden')) return;
+    var bad = keys.filter(function (k) { return R[k].level === 'bad'; }).length;
+    var warn = keys.filter(function (k) { return R[k].level === 'warn'; }).length;
+    var v = $('verdict'), t = $('verdict-text');
+    if (bad) { v.textContent = 'Нужно исправить: ' + bad; t.textContent = 'Посмотрите подсказки выше — исправьте и нажмите «Проверить ещё раз». Не получается — скопируйте результат и отправьте в поддержку.'; }
+    else if (warn) { v.textContent = 'Почти всё готово'; t.textContent = 'Урок пройдёт, но есть замечания — посмотрите подсказки выше.'; }
+    else { v.textContent = 'Всё готово к уроку'; t.textContent = 'Камера, микрофон, звук и интернет работают.'; }
+    v.style.color = bad ? 'var(--bad)' : warn ? 'var(--warn)' : 'var(--ok)';
+    $('report').textContent = reportText();
+    releaseCameraSoon();
+  }
+  async function copyReport() {
+    var text = reportText(), note = $('copy-note');
+    try { await navigator.clipboard.writeText(text); note.textContent = 'Скопировано. Вставьте в чат с поддержкой.'; }
+    catch (e) {
+      var ta = el('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e2) { }
+      ta.remove();
+      note.textContent = ok ? 'Скопировано. Вставьте в чат с поддержкой.' : 'Не удалось скопировать — выделите текст выше и скопируйте вручную.';
+    }
+  }
+
+  async function run() {
+    R = {}; stopStreams();
+    $('start-card').classList.add('hidden');
+    $('steps').classList.remove('hidden');
+    $('summary').classList.add('hidden');
+    ['env', 'cam', 'mic', 'spk', 'net'].forEach(function (k) { body(k).textContent = ''; chip(k, '', 'ждёт'); });
+    getAudioCtx();                 // создаём звук по нажатию — иначе браузер его заблокирует
+    var canMedia = checkEnv();
+    if (canMedia) { await checkCam(); await checkMic(); }
+    else {
+      ['cam', 'mic'].forEach(function (k) { R[k] = { level: 'bad', text: 'не проверено — сначала исправьте браузер', howto: [] }; chip(k, 'bad', 'не проверено'); });
+    }
+    await checkSpk();
+    await checkNet();
+    $('summary').classList.remove('hidden');
+    refreshSummary();
+    $('summary').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('start').addEventListener('click', run);
+  $('again').addEventListener('click', function () { window.scrollTo(0, 0); run(); });
+  $('copy').addEventListener('click', copyReport);
+  window.addEventListener('pagehide', stopStreams);
+  window.__lessonCheck = { detect: detect, classify: classify, reportText: reportText, results: function () { return R; }, config: CONFIG,
+    liveTracks: function () { var n = 0; streams.forEach(function (s) { s.getTracks().forEach(function (t) { if (t.readyState === 'live') n++; }); }); return n; } };
+})();
+</script>
+</body>
+</html>
